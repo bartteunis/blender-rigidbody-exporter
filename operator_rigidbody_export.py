@@ -46,11 +46,12 @@ def write_scene_physics(context, filepath):
         # Get reference to object data
         d = o.data
         
-        # Select the necessary stuff (single face loop)
+        # Select the necessary stuff (multiple face loops)
+        physics_settings['coords'] = []
         for poly in d.polygons:
             vtx_indices = [d.loops[x].vertex_index for x in poly.loop_indices]
             ordered_verts = [d.vertices[x].co.xy[:] for x in vtx_indices]
-            physics_settings['coords'] = ordered_verts
+            physics_settings['coords'].append(ordered_verts)
         
         object_list.append({'object': object_settings, 'physics': physics_settings})
         object_mapping[o.name] = len(object_list)-1 # Index in list
