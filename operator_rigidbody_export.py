@@ -6,7 +6,7 @@ bl_info = {
     "blender": (2, 79, 0),
     "location": "File > Export",
     "warning": "", # used for warning icon and text in addons panel
-    "wiki_url": "",
+    "wiki_url": "https://github.com/bartteunis/blender-rigidbody-exporter/wiki",
     "category": "Import-Export"}
 
 import bpy
