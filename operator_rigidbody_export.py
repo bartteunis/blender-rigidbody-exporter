@@ -2,8 +2,8 @@ bl_info = {
     "name": "Export Box2D Rigid Body",
     "description": "Export the current scene's rigid body world to a json file",
     "author": "Bart Teunis",
-    "version": (0, 7, 0),
-    "blender": (2, 78, 0),
+    "version": (0, 7, 1),
+    "blender": (2, 79, 0),
     "location": "File > Export",
     "warning": "", # used for warning icon and text in addons panel
     "wiki_url": "",
@@ -12,7 +12,7 @@ bl_info = {
 import bpy
 import json
 
-def write_scene_physics(context, filepath):
+def write_scene_physics(context, filepath, selection_only):
     s = context.scene
     w = s.rigidbody_world
     
@@ -36,7 +36,12 @@ def write_scene_physics(context, filepath):
     oprops = {'location','rotation_euler','scale','dimensions','name'}
     
     # Iterate over rigid body objects
-    for o in w.group.objects:
+    if selection_only:
+        items = [o for o in w.group.objects if o in bpy.context.selected_objects]
+    else:
+        items = w.group.objects
+    
+    for o in items:
         b = o.rigid_body
         
         physics_settings = {x:b.path_resolve(x) for x in props}
@@ -85,8 +90,8 @@ from bpy.types import Operator
 
 
 class ExportRigidBody(Operator, ExportHelper):
-    """This appears in the tooltip of the operator and in the generated docs"""
-    bl_idname = "export_test.some_data"  # important since its how bpy.ops.import_test.some_data is constructed
+    """Export rigid body world for use with Box2D"""
+    bl_idname = "export_rigidbody.box2d"  # important since its how bpy.ops.import_test.box2d is constructed
     bl_label = "Export Rigid Body"
 
     # ExportHelper mixin class uses this
@@ -97,19 +102,14 @@ class ExportRigidBody(Operator, ExportHelper):
             options={'HIDDEN'},
             maxlen=255,  # Max internal buffer length, longer would be clamped.
             )
-
-    # List of operator properties, the attributes will be assigned
-    # to the class instance from the operator settings before calling.
-    #type = EnumProperty(
-    #        name="Example Enum",
-    #        description="Choose between two items",
-    #        items=(('OPT_A', "First Option", "Description one"),
-    #               ('OPT_B', "Second Option", "Description two")),
-    #        default='OPT_A',
-    #        )
+    
+    selection_only = BoolProperty(
+            name="Selection Only",
+            description="Export selected only",
+            )
 
     def execute(self, context):
-        return write_scene_physics(context, self.filepath)
+        return write_scene_physics(context, self.filepath, self.selection_only)
 
 
 # Only needed if you want to add into a dynamic menu
@@ -131,4 +131,4 @@ if __name__ == "__main__":
     register()
 
     # test call
-    bpy.ops.export_test.some_data('INVOKE_DEFAULT')
+    bpy.ops.export_rigidbody.box2d('INVOKE_DEFAULT')
