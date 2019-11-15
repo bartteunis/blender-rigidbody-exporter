@@ -12,7 +12,7 @@ bl_info = {
 import bpy
 import json
 
-def write_scene_physics(context, filepath, selection_only):
+def write_scene_physics(context, exporter, filepath, selection_only):
     s = context.scene
     w = s.rigidbody_world
     
@@ -54,6 +54,10 @@ def write_scene_physics(context, filepath, selection_only):
         # Select the necessary stuff (multiple face loops)
         physics_settings['coords'] = []
         for poly in d.polygons:
+            l = len(poly.loop_indices)
+            if (l < 3 or l > 8):
+                exporter.report({'WARNING'}, "Object: " + o.name + " - Convex polygon shape's vertex count is less than 3 or more than 8")
+            
             vtx_indices = [d.loops[x].vertex_index for x in poly.loop_indices]
             ordered_verts = [d.vertices[x].co.xy[:] for x in vtx_indices]
             physics_settings['coords'].append(ordered_verts)
@@ -109,7 +113,7 @@ class ExportRigidBody(Operator, ExportHelper):
             )
 
     def execute(self, context):
-        return write_scene_physics(context, self.filepath, self.selection_only)
+        return write_scene_physics(context, self, self.filepath, self.selection_only)
 
 
 # Only needed if you want to add into a dynamic menu
