@@ -2,7 +2,7 @@ bl_info = {
     "name": "Export Box2D Rigid Body",
     "description": "Export the current scene's rigid body world to a json file",
     "author": "Bart Teunis",
-    "version": (0, 7, 1),
+    "version": (0, 7, 2),
     "blender": (2, 79, 0),
     "location": "File > Export",
     "warning": "", # used for warning icon and text in addons panel
@@ -59,7 +59,7 @@ def write_scene_physics(context, exporter, filepath, selection_only):
                 exporter.report({'WARNING'}, "Object: " + o.name + " - Convex polygon shape's vertex count is less than 3 or more than 8")
             
             vtx_indices = [d.loops[x].vertex_index for x in poly.loop_indices]
-            ordered_verts = [d.vertices[x].co.xy[:] for x in vtx_indices]
+            ordered_verts = [getattr(d.vertices[x].co,exporter.coordinates)[:] for x in vtx_indices]
             physics_settings['coords'].append(ordered_verts)
         
         object_list.append({'object': object_settings, 'physics': physics_settings})
@@ -102,15 +102,25 @@ class ExportRigidBody(Operator, ExportHelper):
     filename_ext = ".phy"
 
     filter_glob = StringProperty(
-            default="*.phy",
-            options={'HIDDEN'},
-            maxlen=255,  # Max internal buffer length, longer would be clamped.
-            )
+        default="*.phy",
+        options={'HIDDEN'},
+        maxlen=255,  # Max internal buffer length, longer would be clamped.
+    )
     
     selection_only = BoolProperty(
-            name="Selection Only",
-            description="Export selected only",
-            )
+        name="Selection Only",
+        description="Export selected only",
+    )
+    
+    coordinates = EnumProperty(
+        name="Coordinate",
+        description="Which values to export",
+        items=(
+            ('xy', 'XY', ""),
+            ('xz', 'XZ', ""),
+            ('yz', 'YZ', ""),
+        )
+    )
 
     def execute(self, context):
         return write_scene_physics(context, self, self.filepath, self.selection_only)
