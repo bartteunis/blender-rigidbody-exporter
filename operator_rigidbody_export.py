@@ -3,7 +3,7 @@ bl_info = {
     "description": "Export the current scene's rigid body world to a json file",
     "author": "Bart Teunis",
     "version": (0, 7, 2),
-    "blender": (2, 79, 0),
+    "blender": (2, 80, 0),
     "location": "File > Export",
     "warning": "", # used for warning icon and text in addons panel
     "wiki_url": "https://github.com/bartteunis/blender-rigidbody-exporter/wiki",
@@ -37,15 +37,15 @@ def write_scene_physics(context, exporter, filepath, selection_only):
     
     # Iterate over rigid body objects
     if selection_only:
-        items = [o for o in w.group.objects if o in bpy.context.selected_objects]
+        items = [o for o in w.collection.objects if o in bpy.context.selected_objects]
     else:
-        items = w.group.objects
+        items = w.collection.objects
     
     for o in items:
         b = o.rigid_body
         
         physics_settings = {x:b.path_resolve(x) for x in props}
-        physics_settings['collision_group'] = [i for i, x in enumerate(b.collision_groups) if x == True][0]
+        physics_settings['collision_group'] = [i for i, x in enumerate(b.collision_collections) if x == True][0]
         object_settings = {x:o.path_resolve(x)[:] for x in oprops}
         
         # Get reference to object data
@@ -101,18 +101,18 @@ class ExportRigidBody(Operator, ExportHelper):
     # ExportHelper mixin class uses this
     filename_ext = ".phy"
 
-    filter_glob = StringProperty(
+    filter_glob : StringProperty(
         default="*.phy",
         options={'HIDDEN'},
         maxlen=255,  # Max internal buffer length, longer would be clamped.
     )
     
-    selection_only = BoolProperty(
+    selection_only : BoolProperty(
         name="Selection Only",
         description="Export selected only",
     )
     
-    coordinates = EnumProperty(
+    coordinates : EnumProperty(
         name="Coordinate",
         description="Which values to export",
         items=(
@@ -133,12 +133,12 @@ def menu_func_export(self, context):
 
 def register():
     bpy.utils.register_class(ExportRigidBody)
-    bpy.types.INFO_MT_file_export.append(menu_func_export)
+    bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
 
 
 def unregister():
     bpy.utils.unregister_class(ExportRigidBody)
-    bpy.types.INFO_MT_file_export.remove(menu_func_export)
+    bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
 
 
 if __name__ == "__main__":
