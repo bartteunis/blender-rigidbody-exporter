@@ -37,41 +37,42 @@ def write_scene_physics(context, exporter, filepath, selection_only):
     
     # Iterate over rigid body objects
     if selection_only:
-        items = [o for o in w.collection.objects if o in bpy.context.selected_objects]
+        items = [obj for obj in w.collection.objects if obj in bpy.context.selected_objects]
     else:
         items = w.collection.objects
     
-    for o in items:
-        b = o.rigid_body
+    for obj in items:
+        body = obj.rigid_body
         
-        physics_settings = {x:b.path_resolve(x) for x in props}
-        physics_settings['collision_group'] = [i for i, x in enumerate(b.collision_collections) if x == True][0]
-        object_settings = {x:o.path_resolve(x)[:] for x in oprops}
+        physics_settings = {x:body.path_resolve(x) for x in props}
+        physics_settings['collision_group'] = [i for i, x in enumerate(body.collision_collections) if x == True][0]
+        object_settings = {x:obj.path_resolve(x)[:] for x in oprops}
         
         # Get reference to object data
-        d = o.data
+        d = obj.data
         
         # Select the necessary stuff (multiple face loops)
         physics_settings['coords'] = []
-        for poly in d.polygons:
-            l = len(poly.loop_indices)
-            if (l < 3 or l > 8):
-                exporter.report({'WARNING'}, "Object: " + o.name + " - Convex polygon shape's vertex count is less than 3 or more than 8")
-            
-            vtx_indices = [d.loops[x].vertex_index for x in poly.loop_indices]
-            ordered_verts = [getattr(d.vertices[x].co,exporter.coordinates)[:] for x in vtx_indices]
-            physics_settings['coords'].append(ordered_verts)
+        if body.collision_shape == 'MESH' or body.collision_shape == 'CONVEX_HULL':
+            for poly in d.polygons:
+                l = len(poly.loop_indices)
+                if (l < 3 or l > 8):
+                    exporter.report({'WARNING'}, "Object: " + obj.name + " - Convex polygon shape's vertex count is less than 3 or more than 8")
+                
+                vtx_indices = [d.loops[x].vertex_index for x in poly.loop_indices]
+                ordered_verts = [getattr(d.vertices[x].co,exporter.coordinates)[:] for x in vtx_indices]
+                physics_settings['coords'].append(ordered_verts)
         
         object_list.append({'object': object_settings, 'physics': physics_settings})
-        object_mapping[o.name] = len(object_list)-1 # Index in list
+        object_mapping[obj.name] = len(object_list)-1 # Index in list
     
     # Iterate over Empty's containing constraints
     if w.constraints != None:
-        for o in w.constraints.objects:
-            c = o.rigid_body_constraint
+        for obj in w.constraints.objects:
+            c = obj.rigid_body_constraint
             if c!= None:
                 constraint_settings = {
-                    "location": o.location[:],
+                    "location": obj.location[:],
                     "object1": object_mapping[c.object1.name],
                     "object2": object_mapping[c.object2.name],
                     "type": c.type,
