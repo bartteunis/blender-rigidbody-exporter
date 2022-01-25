@@ -3,10 +3,10 @@ bl_info = {
     "description": "Export the current scene's rigid body world to a json file",
     "author": "Bart Teunis",
     "version": (0, 7, 2),
-    "blender": (2, 80, 0),
+    "blender": (3, 0, 0),
     "location": "File > Export",
     "warning": "", # used for warning icon and text in addons panel
-    "wiki_url": "https://github.com/bartteunis/blender-rigidbody-exporter/wiki",
+    "doc_url": "https://github.com/bartteunis/blender-rigidbody-exporter/wiki",
     "category": "Import-Export"}
 
 import bpy
@@ -15,42 +15,42 @@ import json
 def write_scene_physics(context, exporter, filepath, selection_only):
     s = context.scene
     w = s.rigidbody_world
-    
+
     object_list = []
     object_mapping = {}     # Used to store object index in array <-> object name
     constraint_list = []
     world_settings = {}
     result = {"objects": object_list, "constraints": constraint_list}
-    
+
     result["version"] = bl_info["version"]
-    
+
     result["world"] = {
         "gravity": s.gravity[:],
         "time_scale": w.time_scale,
-        "steps_per_second": w.steps_per_second,
+        "steps_per_second": w.substeps_per_frame,
         "solver_iterations": w.solver_iterations,
     }
-    
+
     # Determine what we need first
     props = {'angular_damping','collision_shape','enabled','friction','kinematic','linear_damping','mass','restitution','type'}
     oprops = {'location','rotation_euler','scale','dimensions','name'}
-    
+
     # Iterate over rigid body objects
     if selection_only:
         items = [obj for obj in w.collection.objects if obj in bpy.context.selected_objects]
     else:
         items = w.collection.objects
-    
+
     for obj in items:
         body = obj.rigid_body
-        
+
         physics_settings = {x:body.path_resolve(x) for x in props}
         physics_settings['collision_group'] = [i for i, x in enumerate(body.collision_collections) if x == True][0]
         object_settings = {x:obj.path_resolve(x)[:] for x in oprops}
-        
+
         # Get reference to object data
         d = obj.data
-        
+
         # Select the necessary stuff (multiple face loops)
         physics_settings['coords'] = []
         if body.collision_shape == 'MESH' or body.collision_shape == 'CONVEX_HULL':
@@ -58,14 +58,14 @@ def write_scene_physics(context, exporter, filepath, selection_only):
                 l = len(poly.loop_indices)
                 if (l < 3 or l > 8):
                     exporter.report({'WARNING'}, "Object: " + obj.name + " - Convex polygon shape's vertex count is less than 3 or more than 8")
-                
+
                 vtx_indices = [d.loops[x].vertex_index for x in poly.loop_indices]
                 ordered_verts = [getattr(d.vertices[x].co,exporter.coordinates)[:] for x in vtx_indices]
                 physics_settings['coords'].append(ordered_verts)
-        
+
         object_list.append({'object': object_settings, 'physics': physics_settings})
         object_mapping[obj.name] = len(object_list)-1 # Index in list
-    
+
     # Iterate over Empty's containing constraints
     if w.constraints != None:
         for obj in w.constraints.objects:
@@ -80,11 +80,11 @@ def write_scene_physics(context, exporter, filepath, selection_only):
                     "enabled": c.enabled
                     }
                 constraint_list.append(constraint_settings)
-    
+
     f_collision = open(filepath,'w')
     json.dump(result,f_collision)
     f_collision.close()
-    
+
     return {'FINISHED'}
 
 # ExportHelper is a helper class, defines filename and
@@ -107,12 +107,12 @@ class ExportRigidBody(Operator, ExportHelper):
         options={'HIDDEN'},
         maxlen=255,  # Max internal buffer length, longer would be clamped.
     )
-    
+
     selection_only : BoolProperty(
         name="Selection Only",
         description="Export selected only",
     )
-    
+
     coordinates : EnumProperty(
         name="Coordinate",
         description="Which values to export",
